@@ -1,0 +1,40 @@
+version: '3'
+
+
+tasks:
+  gen-clients:
+    preconditions:
+      - sh: which oapi-codegen > /dev/null
+        msg: "Place install OpenAPI client generator: go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest"
+    cmds:
+      - oapi-codegen -package firefly -generate types,client -include-operation-ids storeTransaction,storeAttachment,uploadAttachment,searchTransactions,listAttachmentByTransaction  data/firefly_openapi_v3.yml > firefly/client.go
+      - oapi-codegen -package qonto -generate types,client -include-operation-ids get_attachment,list_transactions,list_transaction_attachments data/qonto_openapi_v3.yml > qonto/client.go
+
+  import:
+    dotenv: ['.env.local', '.env.local.dist']
+    cmds:
+          - go run . import
+            --firefly-base-url $FIREFLY_BASE_URL
+            --firefly-token $FIREFLY_TOKEN
+            --firefly-asset-account-id $FIREFLY_ASSET_ACCOUNT_ID
+            --firefly-revenue-account-id $FIREFLY_REVENUE_ACCOUNT_ID
+            --firefly-expense-account-id $FIREFLY_EXPENSE_ACCOUNT_ID
+            --qonto-login $QONTO_LOGIN
+            --qonto-password $QONTO_PASSWORD
+            --qonto-iban $QONTTO_IBAN
+            
+  docker-import:
+    dotenv: ['.env.local', '.env.local.dist']
+    cmds:
+          - echo aa=${QONTO_LOGIN}
+          - docker build . -t importer
+          - docker run
+            -e FIREFLY_BASE_URL=$FIREFLY_BASE_URL
+            -e FIREFLY_TOKEN=$FIREFLY_TOKEN
+            -e FIREFLY_ASSET_ACCOUNT_ID=$FIREFLY_ASSET_ACCOUNT_ID
+            -e FIREFLY_REVENUE_ACCOUNT_ID=$FIREFLY_REVENUE_ACCOUNT_ID
+            -e FIREFLY_EXPENSE_ACCOUNT_ID=$FIREFLY_EXPENSE_ACCOUNT_ID
+            -e QONTO_LOGIN=${QONTO_LOGIN}
+            -e QONTO_PASSWORD=$QONTO_PASSWORD
+            -e QONTTO_IBAN=$QONTTO_IBAN
+            --rm importer 
